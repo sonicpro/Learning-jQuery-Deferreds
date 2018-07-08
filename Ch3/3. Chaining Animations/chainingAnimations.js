@@ -10,12 +10,20 @@ function synchronously(tasks) {
     var i, task, selector, func,
         promise = $.Deferred().resolve().promise(),
         animationFuncFactory = function(func, selector, args) {
-            // The returned function reurns a promise and will be passed to .then as callback.
+            // The returned function returns a promise and will be passed to .then as callback.
             // Notice that the function nas no arguments, i.e. we discard any value the previous animation
             // had been resolved with. The ultimate goal is to get all the animation called one-by-one, any values are not passed through.
             return function() {
                 var host = $(selector);
-                return func.apply(host, args).promise();
+
+                // If the "func" return value does not have promise() method,
+                // return a plain value from the constructed function.
+                var asyncResult = func.apply(host, args);
+                if ($.isFunction(asyncResult.promise)) {
+                    return func.apply(host, args).promise();
+                } else {
+                    return asyncResult;
+                }
             };
         };
 
@@ -34,7 +42,8 @@ function synchronously(tasks) {
 }
 
 var promise = synchronously([
-    [ $("#label1").animate, "#label1", { opacity: 0.25 }, 100 ],
+    // [ $("#label1").animate, "#label1", { opacity: 0.25 }, 100 ],
+    [ function () { return "bolt"; }, "#label1" ],
     [ $("#label2").animate, "#label2", { opacity: 0.10 }, 500 ],    
     ]);
 
