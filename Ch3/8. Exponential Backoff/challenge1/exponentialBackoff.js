@@ -51,9 +51,9 @@ function retryingCaller ( /* context, function, args... */ ) {
     return deferred.promise();
 }
 
-function theFailingOne() {
-    return $.Deferred().reject("I'm failing");
-}
+// function theFailingOne() {
+//     return $.Deferred().reject("I'm failing");
+// }
 
 function theSucceedingOne() {
     return "Success";
@@ -63,6 +63,6 @@ retryingCaller(null, theFailingOne, [ 1, 5, 10 ]).fail(function(result) {
     console.log(result);
 });
 
-retryingCaller(null, theSucceedingOne, [ 1, 5, 10 ]).done(function(result) {
-    console.log(result);
-});
+// retryingCaller(null, theSucceedingOne, [ 1, 5, 10 ]).done(function(result) {
+//     console.log(result);
+// });

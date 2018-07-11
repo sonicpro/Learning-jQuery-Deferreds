@@ -9,6 +9,7 @@ function retryingCaller ( /* context, function, args... */ ) {
         rejectValue,
         delaysInSec = [0.0, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 1.0, 2.0],
         attempt = 0,
+        errorReasonHasCaptured = false;
 
         // This function is from Chapter 3 "setTimeout replacement" demo.
         wait = function(timeout) {
@@ -19,8 +20,9 @@ function retryingCaller ( /* context, function, args... */ ) {
 
         // This function will be called as the fail callback filter for each of the promises (nine at the most).
         error = function(value) {
-            if (rejectValue === undefined) {
+            if (!errorReasonHasCaptured) { // Change of the original version. Now the reasons of the failures caused by rejecting the target function with no value are captured as well.
                 rejectValue = value;
+                errorReasonHasCaptured = true;
             }
 
             if (attempt === delaysInSec.length) {
@@ -37,7 +39,7 @@ function retryingCaller ( /* context, function, args... */ ) {
                 function() {
                     // Calling $.when() with a single function argument is a way of converting
                     // the non-thenable argument function return value to the thenable one.                    
-                    $.when(func.apply(context, args)).then(
+                    $.when(func.apply(context, [attempt].concat(args))).then(
                         deferred.resolve,
                         error
                     );
@@ -51,8 +53,12 @@ function retryingCaller ( /* context, function, args... */ ) {
     return deferred.promise();
 }
 
-function theFailingOne() {
-    return $.Deferred().reject("I'm failing");
+function theFailingOne(attempt) {
+    if (attempt === 1) {
+        return $.Deferred().reject(); // The first invocation are rejected with no value. It is equivalent to rejecting with "undefined".
+    } else {
+        return $.Deferred().reject("I'm failing");
+    }
 }
 
 // function theSucceedingOne() {
