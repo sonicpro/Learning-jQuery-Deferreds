@@ -1,10 +1,13 @@
-// Function that attempts to call the function passed as the second argument nine times,
+// Function that attempts to call the function passed as the second argument nine times at most,
 // and if none of the calls succeeds, returns the original failure value via the rejected promise.
 
-function retryingCaller ( /* context, function, args... */ ) {
+// Nine calls is possible only if the error statuses are 500, 502 (Bad Gateway) or 504 (Gateway timeout). The checker function can be passed to retryingCaller as the third argument.
+
+function retryingCaller ( /* context, function, checkerFunction, args... */ ) {
     var context = arguments[0],
         func = arguments[1],
-        args = $.makeArray(arguments).slice(2),
+        checkerFunction = arguments[2],
+        args = $.makeArray(arguments).slice(3),
         deferred = $.Deferred(),
         rejectValue,
         delaysInSec = [0.0, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 1.0, 2.0],
@@ -20,12 +23,12 @@ function retryingCaller ( /* context, function, args... */ ) {
 
         // This function will be called as the fail callback filter for each of the promises (nine at the most).
         error = function(value) {
-            if (!errorReasonHasCaptured) { // Change of the original version. Now the reasons of the failures caused by rejecting the target function with no value are captured as well.
+            if (!errorReasonHasCaptured) {
                 rejectValue = value;
                 errorReasonHasCaptured = true;
             }
 
-            if (attempt === delaysInSec.length) {
+            if (attempt === delaysInSec.length || checkerFunction(value)) {
                 deferred.reject(rejectValue);
             } else {
                 call();
@@ -54,21 +57,19 @@ function retryingCaller ( /* context, function, args... */ ) {
 }
 
 function theFailingOne(attempt) {
-    if (attempt === 1) {
-        return $.Deferred().reject(); // The first invocation are rejected with no value. It is equivalent to rejecting with "undefined".
+    if (attempt < 9) {
+        return $.Deferred().reject({ status: 500 });
     } else {
-        return $.Deferred().reject("I'm failing");
+        return $.Deferred().reject({ status: 404 });
     }
 }
 
-// function theSucceedingOne() {
-//     return "Success";
-// }
+function errorTester(error) {
+    var allowedStatuses = [500, 502, 504];
+    return $.inArray(error.status, allowedStatuses) === -1;
+}
 
-retryingCaller(null, theFailingOne).fail(function(result) {
+retryingCaller(null, theFailingOne, errorTester).fail(function(result) {
     console.log(result);
 });
 
-// retryingCaller(null, theSucceedingOne).done(function(result) {
-//     console.log(result);
-// });

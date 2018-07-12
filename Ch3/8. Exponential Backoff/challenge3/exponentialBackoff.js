@@ -1,5 +1,5 @@
 // Function that attempts to call the function passed as the second argument nine times,
-// and if none of the calls succeeds, returns the original failure value via the rejected promise.
+// and if none of the calls succeeds, returns the array of failure reasons via the rejected promise.
 
 function retryingCaller ( /* context, function, args... */ ) {
     var context = arguments[0],
@@ -9,7 +9,7 @@ function retryingCaller ( /* context, function, args... */ ) {
         rejectValue,
         delaysInSec = [0.0, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 1.0, 2.0],
         attempt = 0,
-        errorReasonHasCaptured = false,
+        failureReasons = Array(delaysInSec.length),
 
         // This function is from Chapter 3 "setTimeout replacement" demo.
         wait = function(timeout) {
@@ -20,13 +20,10 @@ function retryingCaller ( /* context, function, args... */ ) {
 
         // This function will be called as the fail callback filter for each of the promises (nine at the most).
         error = function(value) {
-            if (!errorReasonHasCaptured) { // Change of the original version. Now the reasons of the failures caused by rejecting the target function with no value are captured as well.
-                rejectValue = value;
-                errorReasonHasCaptured = true;
-            }
+            failureReasons[attempt - 1] = value;
 
             if (attempt === delaysInSec.length) {
-                deferred.reject(rejectValue);
+                deferred.reject(failureReasons);
             } else {
                 call();
             }
