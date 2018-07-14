@@ -1,0 +1,7 @@
+{
+  "name": "deferred-queue",
+  "version": "0.0.1",
+  "dependencies": {
+    "jquery-deferred": "^0.3.1"
+  }
+}
